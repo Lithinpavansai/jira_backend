@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from jose.exceptions import ExpiredSignatureError
 
 from app.database.session import get_db
 from app.models import User
@@ -37,8 +38,10 @@ def get_current_user(
         user_id: int = payload.get("user_id")
         if not user_id:
             raise_unauthorized()
+    except ExpiredSignatureError:
+        raise_unauthorized("Token expired. Please log in again.")
     except JWTError:
-        raise_unauthorized()
+        raise_unauthorized("Invalid token.")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
